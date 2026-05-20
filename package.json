@@ -1,0 +1,27 @@
+{
+  "name": "contacta-floor-monitor",
+  "version": "1.0.0",
+  "description": "Sistema de monitoreo en tiempo real para Contact Center con SVG interactivo",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
+  },
+  "keywords": [
+    "contact-center",
+    "real-time",
+    "svg",
+    "monitoring",
+    "socketio"
+  ],
+  "author": "Contacta Floor Monitor",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.5.4",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}

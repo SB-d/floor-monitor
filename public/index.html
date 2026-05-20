@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Floor Monitor - Professional Layout Editor</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                        <rect x="4" y="12" width="6" height="16" rx="1" fill="#3b82f6"/>
+                        <rect x="13" y="8" width="6" height="20" rx="1" fill="#3b82f6"/>
+                        <rect x="22" y="4" width="6" height="24" rx="1" fill="#3b82f6"/>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <h1>Floor Monitor</h1>
+                    <span>Professional Layout Editor</span>
+                </div>
+            </div>
+
+            <div class="header-stats">
+                <div class="stat-badge online">
+                    <span class="stat-label">Online</span>
+                    <span class="stat-value" id="stat-online">0</span>
+                </div>
+                <div class="stat-badge busy">
+                    <span class="stat-label">Ocupado</span>
+                    <span class="stat-value" id="stat-busy">0</span>
+                </div>
+                <div class="stat-badge pause">
+                    <span class="stat-label">Pausa</span>
+                    <span class="stat-value" id="stat-pause">0</span>
+                </div>
+                <div class="stat-badge offline">
+                    <span class="stat-label">Offline</span>
+                    <span class="stat-value" id="stat-offline">0</span>
+                </div>
+                <div class="stat-badge error">
+                    <span class="stat-label">Error</span>
+                    <span class="stat-value" id="stat-error">0</span>
+                </div>
+            </div>
+
+            <div class="editor-controls">
+                <button id="editor-mode-btn" class="editor-mode-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20h9M16.5 3.5L20 7l-9 9-4 1 1-4 9-9z"/>
+                    </svg>
+                    Modo Edición
+                </button>
+            </div>
+
+            <div class="connection-status" id="connection-status">
+                <div class="status-dot"></div>
+                <span>Conectando...</span>
+            </div>
+        </header>
+
+        <!-- Editor Toolbar (hidden by default) -->
+        <div id="editor-toolbar" class="editor-toolbar" style="display: none;">
+
+            <!-- Grupo: Undo / Redo -->
+            <div class="toolbar-group">
+                <button id="undo-btn" class="tool-btn" title="Deshacer (Ctrl+Z)" disabled>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
+                    </svg>
+                </button>
+                <button id="redo-btn" class="tool-btn" title="Rehacer (Ctrl+Y)" disabled>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Grupo: Puestos -->
+            <div class="toolbar-group">
+                <button id="add-desk-btn" class="tool-btn" title="Agregar Puesto (Ctrl+N)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    <span>Puesto</span>
+                </button>
+                <button id="delete-selected-btn" class="tool-btn" title="Eliminar (Del)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                    <span>Eliminar</span>
+                </button>
+            </div>
+
+            <!-- Grupo: Grid / Snap -->
+            <div class="toolbar-group">
+                <button id="snap-grid-btn" class="tool-btn" title="Snap to Grid">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>
+                    </svg>
+                    <span>Grid</span>
+                </button>
+                <button id="smart-guides-btn" class="tool-btn active" title="Smart Guides">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <span>Guías</span>
+                </button>
+                <select id="grid-size" class="tool-select" disabled>
+                    <option value="20">20px</option>
+                    <option value="40" selected>40px</option>
+                    <option value="60">60px</option>
+                    <option value="80">80px</option>
+                </select>
+            </div>
+
+            <!-- Grupo: Zonas -->
+            <div class="toolbar-group">
+                <button id="add-zone-btn" class="tool-btn" title="Crear Zona">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="4" y="4" width="16" height="16" rx="2"/>
+                        <path d="M8 8h8v8H8z"/>
+                    </svg>
+                    <span>Zona</span>
+                </button>
+                <button id="auto-layout-btn" class="tool-btn" title="Auto Layout — genera puestos en la zona seleccionada">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                        <path d="M10 6h4M6 10v4M14 18h4M18 14v4"/>
+                    </svg>
+                    <span>Auto Layout</span>
+                </button>
+                <button id="duplicate-zone-btn" class="tool-btn" title="Duplicar Zona">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                </button>
+                <button id="lock-zone-btn" class="tool-btn" title="Bloquear Zona">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </button>
+                <button id="hide-zones-btn" class="tool-btn" title="Mostrar/Ocultar Zonas">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
+                <button id="arrange-zones-btn" class="tool-btn" title="Organizar Zonas">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Grupo: Archivo -->
+            <div class="toolbar-group">
+                <button id="reset-layout-btn" class="tool-btn" title="Resetear Layout">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 4v6h-6M1 20v-6h6"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                    <span>Reset</span>
+                </button>
+                <button id="save-layout-btn" class="tool-btn" title="Guardar (Ctrl+S)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    <span>Guardar</span>
+                </button>
+                <button id="export-layout-btn" class="tool-btn" title="Exportar JSON">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    <span>Exportar</span>
+                </button>
+                <label for="import-layout" class="tool-btn" title="Importar JSON" style="cursor:pointer">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 5 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="5"/>
+                    </svg>
+                    <span>Importar</span>
+                </label>
+                <input type="file" id="import-layout" accept=".json" style="display: none;">
+            </div>
+
+            <!-- Modo indicator -->
+            <div class="toolbar-group">
+                <span class="mode-indicator" id="mode-indicator">
+                    <span class="mode-dot"></span>
+                    Modo Monitoreo
+                </span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- SVG Map Container -->
+            <div class="map-container" id="map-container">
+                <div class="map-toolbar">
+                    <button id="zoom-in" class="toolbar-btn" title="Acercar">+</button>
+                    <button id="zoom-out" class="toolbar-btn" title="Alejar">-</button>
+                    <button id="reset-view" class="toolbar-btn" title="Resetear vista">⟳</button>
+                </div>
+                <div id="svg-wrapper" class="svg-wrapper">
+                    <svg id="floor-map" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+                        <g id="map-root">
+                        <!-- Background -->
+                        <rect width="1200" height="800" fill="#0a0e27"/>
+
+                        <!-- Grid -->
+                        <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                            <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#1a1f3a" stroke-width="0.5"/>
+                        </pattern>
+                        <rect width="1200" height="800" fill="url(#grid)"/>
+
+                        <!-- Walls Structure -->
+                        <g id="walls">
+                            <rect x="20" y="20" width="1160" height="760" fill="none" stroke="#2a2f4a" stroke-width="4" rx="8"/>
+                            <line x1="20" y1="200" x2="1180" y2="200" stroke="#2a2f4a" stroke-width="2" stroke-dasharray="8,4"/>
+                            <line x1="20" y1="400" x2="1180" y2="400" stroke="#2a2f4a" stroke-width="2" stroke-dasharray="8,4"/>
+                            <line x1="20" y1="600" x2="1180" y2="600" stroke="#2a2f4a" stroke-width="2" stroke-dasharray="8,4"/>
+                        </g>
+
+                        <!-- Zones Container -->
+                        <g id="zones"></g>
+
+                        <!-- Labels Container -->
+                        <g id="labels"></g>
+
+                        <!-- Desks Container -->
+                        <g id="desks"></g>
+
+                        <!-- Selection Overlay -->
+                        <g id="selection-overlay"></g>
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- Selection Rectangle (for multi-select drag) -->
+                <div id="selection-rect" class="selection-rect" style="display: none; position:absolute; pointer-events:none;"></div>
+            </div>
+
+            <!-- Properties Panel -->
+            <aside class="properties-panel" id="properties-panel" style="display:none;">
+                <div class="panel-header">
+                    <h3>Propiedades</h3>
+                    <button id="close-panel" class="close-panel">×</button>
+                </div>
+                <div class="panel-content" id="properties-content">
+                    <div class="empty-state">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                            <rect x="4" y="4" width="16" height="16" rx="2"/>
+                            <path d="M12 8v8M8 12h8"/>
+                        </svg>
+                        <p>Selecciona un elemento para editar</p>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Monitoring Sidebar -->
+            <aside class="sidebar" id="monitoring-sidebar">
+                <div class="sidebar-header">
+                    <h3>Detalles del Puesto</h3>
+                    <span class="badge">Seleccionado</span>
+                </div>
+                <div class="desk-details" id="desk-details">
+                    <div class="empty-state">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                            <rect x="4" y="4" width="16" height="16" rx="2"/>
+                            <path d="M12 8v8M8 12h8"/>
+                        </svg>
+                        <p>Selecciona un puesto para ver detalles</p>
+                    </div>
+                </div>
+                <div class="sidebar-footer">
+                    <div class="metrics">
+                        <div class="metric">
+                            <span class="metric-label">Total Puestos</span>
+                            <span class="metric-value" id="total-desks">0</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Ocupación</span>
+                            <span class="metric-value" id="occupancy-rate">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu" style="display: none;">
+        <div class="context-menu-item" data-action="edit">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9M16.5 3.5L20 7l-9 9-4 1 1-4 9-9z"/>
+            </svg>
+            Editar
+        </div>
+        <div class="context-menu-item" data-action="duplicate">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            Duplicar
+        </div>
+        <div class="context-menu-item" data-action="delete">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            Eliminar
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" data-action="status-online">
+            <span class="status-dot online"></span> Cambiar a Online
+        </div>
+        <div class="context-menu-item" data-action="status-busy">
+            <span class="status-dot busy"></span> Cambiar a Ocupado
+        </div>
+        <div class="context-menu-item" data-action="status-pause">
+            <span class="status-dot pause"></span> Cambiar a Pausa
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" data-action="lock">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            Bloquear Posición
+        </div>
+    </div>
+
+    <!-- Scripts: orden de dependencias -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/socket.js"></script>
+    <script src="js/storageManager.js"></script>
+    <script src="js/undoManager.js"></script>
+    <script src="js/snapEngine.js"></script>
+    <script src="js/alignment.js"></script>
+    <script src="js/layoutGenerators.js"></script>
+    <script src="js/dragHandler.js"></script>
+    <script src="js/zoneManager.js"></script>
+    <script src="js/editor.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/minimap.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        // Inicializar SnapEngine globalmente una vez que el SVG está listo
+        document.addEventListener('DOMContentLoaded', () => {
+            const svg = document.getElementById('floor-map');
+            if (svg) {
+                window.snapEngine = new SnapEngine(svg);
+            }
+        });
+    </script>
+</body>
+</html>

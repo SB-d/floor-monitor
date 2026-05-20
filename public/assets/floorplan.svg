@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+    <rect width="1200" height="800" fill="#0a0e27"/>
+    
+    <defs>
+        <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+            <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#1a1f3a" stroke-width="0.5"/>
+        </pattern>
+        
+        <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+    
+    <rect width="1200" height="800" fill="url(#grid)"/>
+    
+    <!-- Paredes y estructura base -->
+    <g id="walls">
+        <rect x="20" y="20" width="1160" height="760" fill="none" stroke="#2a2f4a" stroke-width="4" rx="8"/>
+        <line x1="20" y1="200" x2="1180" y2="200" stroke="#2a2f4a" stroke-width="2" stroke-dasharray="8,4"/>
+        <line x1="20" y1="400" x2="1180" y2="400" stroke="#2a2f4a" stroke-width="2" stroke-dasharray="8,4"/>
+        <line x1="20" y1="600" x2="1180" y2="600" stroke="#2a2f4a" stroke-width="2" stroke-dasharray="8,4"/>
+    </g>
+    
+    <!-- Zonas semánticas -->
+    <g id="zones" opacity="0.08">
+        <rect x="40" y="40" width="540" height="140" fill="#3b82f6" rx="4"/>
+        <rect x="620" y="40" width="540" height="140" fill="#10b981" rx="4"/>
+        <rect x="40" y="220" width="540" height="160" fill="#f59e0b" rx="4"/>
+        <rect x="620" y="220" width="540" height="160" fill="#ef4444" rx="4"/>
+        <rect x="40" y="420" width="540" height="160" fill="#8b5cf6" rx="4"/>
+        <rect x="620" y="420" width="540" height="160" fill="#ec4899" rx="4"/>
+    </g>
+    
+    <!-- Etiquetas de zonas -->
+    <g id="labels">
+        <text x="310" y="130" text-anchor="middle" fill="#6b7280" font-size="12" font-family="Inter, Arial, sans-serif" opacity="0.4" font-weight="600">VENTAS PREMIUM</text>
+        <text x="890" y="130" text-anchor="middle" fill="#6b7280" font-size="12" font-family="Inter, Arial, sans-serif" opacity="0.4" font-weight="600">SOPORTE TÉCNICO</text>
+        <text x="310" y="310" text-anchor="middle" fill="#6b7280" font-size="12" font-family="Inter, Arial, sans-serif" opacity="0.4" font-weight="600">ATENCIÓN CLIENTES</text>
+        <text x="890" y="310" text-anchor="middle" fill="#6b7280" font-size="12" font-family="Inter, Arial, sans-serif" opacity="0.4" font-weight="600">COBRANZAS</text>
+        <text x="310" y="510" text-anchor="middle" fill="#6b7280" font-size="12" font-family="Inter, Arial, sans-serif" opacity="0.4" font-weight="600">FIDELIZACIÓN</text>
+        <text x="890" y="510" text-anchor="middle" fill="#6b7280" font-size="12" font-family="Inter, Arial, sans-serif" opacity="0.4" font-weight="600">RETENCIÓN</text>
+    </g>
+    
+    <!-- Contenedor de puestos -->
+    <g id="desks"></g>
+</svg>
