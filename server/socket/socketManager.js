@@ -15,9 +15,11 @@ class SocketManager {
       console.log(`✅ Cliente conectado: ${socket.id}`);
       this.connectedClients.add(socket.id);
       
-      // Enviar datos iniciales
-      socket.emit('initial-data', this.dataSimulator.getAllDesks());
-      socket.emit('stats-update', this.dataSimulator.getStats());
+      // Los datos reales vienen de Supabase (cliente los carga directamente).
+      // El socket solo notifica cambios de estado en tiempo real desde
+      // integraciones externas (PATCH /api/desks/:id/status).
+      socket.emit('initial-data', []);
+      socket.emit('stats-update', { total: 0, online: 0, busy: 0, pause: 0, offline: 0, error: 0 });
       
       // Escuchar eventos del cliente
       socket.on('request-desk-update', (deskId) => {
@@ -38,18 +40,9 @@ class SocketManager {
   }
   
   startRealTimeUpdates() {
-    this.updateInterval = setInterval(() => {
-      // Generar cambios aleatorios
-      const changedDesks = this.dataSimulator.simulateRandomChanges();
-      
-      if (changedDesks.length > 0 && this.connectedClients.size > 0) {
-        // Emitir cambios a todos los clientes
-        this.io.emit('desks-update', changedDesks);
-        this.io.emit('stats-update', this.dataSimulator.getStats());
-        
-        console.log(`📊 Actualización en tiempo real: ${changedDesks.length} puestos modificados`);
-      }
-    }, 3000); // Actualizar cada 3 segundos
+    // Simulador desactivado — los estados los gestiona Supabase Realtime.
+    // El servidor solo reenvía cambios que llegan desde integraciones externas
+    // vía PATCH /api/desks/:id/status, no genera cambios aleatorios propios.
   }
   
   getStats() {

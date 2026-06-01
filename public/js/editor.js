@@ -338,6 +338,14 @@ class EditorManager {
         this.desks.delete(deskId);
         this.mapManager.removeDesk(deskId);
         this.selectedDesks.delete(deskId);
+
+        // Borrar de Supabase si tiene ID real en DB
+        if (desk._dbId && window.dbService) {
+            dbService.deleteDesk(desk._dbId).catch(err =>
+                console.warn('[Editor] Error borrando desk de DB:', err.message)
+            );
+        }
+
         this.saveLayoutSilent();
         return true;
     }
@@ -422,46 +430,47 @@ class EditorManager {
             return;
         }
 
+        // Estructura fija sin datos del usuario — los valores se asignan por DOM
         panel.innerHTML = `
             <div class="properties-form">
                 <div class="form-group">
                     <label>ID del Puesto</label>
-                    <input type="text" value="#${desk.id}" readonly disabled>
+                    <input type="text" id="prop-id" readonly disabled>
                 </div>
                 <div class="form-group">
                     <label>Agente</label>
-                    <input type="text" id="prop-agent" value="${desk.agent || ''}" placeholder="Nombre del agente">
+                    <input type="text" id="prop-agent" placeholder="Nombre del agente">
                 </div>
                 <div class="form-group">
                     <label>Campaña</label>
-                    <input type="text" id="prop-campaign" value="${desk.campaign || ''}" placeholder="Campaña">
+                    <input type="text" id="prop-campaign" placeholder="Campaña">
                 </div>
                 <div class="form-group">
                     <label>Extensión</label>
-                    <input type="text" id="prop-extension" value="${desk.extension || ''}" placeholder="Extensión">
+                    <input type="text" id="prop-extension" placeholder="Extensión">
                 </div>
                 <div class="form-group">
                     <label>Estado</label>
                     <select id="prop-status">
-                        <option value="online"  ${desk.status === 'online'  ? 'selected' : ''}>Online</option>
-                        <option value="busy"    ${desk.status === 'busy'    ? 'selected' : ''}>Ocupado</option>
-                        <option value="pause"   ${desk.status === 'pause'   ? 'selected' : ''}>Pausa</option>
-                        <option value="offline" ${desk.status === 'offline' ? 'selected' : ''}>Offline</option>
-                        <option value="error"   ${desk.status === 'error'   ? 'selected' : ''}>Error</option>
+                        <option value="online">Online</option>
+                        <option value="busy">Ocupado</option>
+                        <option value="pause">Pausa</option>
+                        <option value="offline">Offline</option>
+                        <option value="error">Error</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Coordenadas</label>
                     <div class="coord-group">
-                        <input type="number" id="prop-x" value="${desk.x}" placeholder="X" step="10">
-                        <input type="number" id="prop-y" value="${desk.y}" placeholder="Y" step="10">
+                        <input type="number" id="prop-x" placeholder="X" step="10">
+                        <input type="number" id="prop-y" placeholder="Y" step="10">
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Rotación: <span id="rotation-value">${desk.rotation || 0}°</span></label>
+                    <label>Rotación: <span id="rotation-value">0°</span></label>
                     <div class="rotation-group">
-                        <input type="range" id="prop-rotation" min="0" max="359" value="${desk.rotation || 0}" step="1">
-                        <input type="number" id="prop-rotation-num" value="${desk.rotation || 0}" min="0" max="359" step="1" style="width:58px">
+                        <input type="range" id="prop-rotation" min="0" max="359" step="1">
+                        <input type="number" id="prop-rotation-num" min="0" max="359" step="1" style="width:58px">
                     </div>
                     <div class="rotation-presets">
                         <button class="btn-preset" data-angle="0">0°</button>
@@ -474,7 +483,7 @@ class EditorManager {
                 </div>
                 <div class="form-group">
                     <label>
-                        <input type="checkbox" id="prop-locked" ${desk.isLocked ? 'checked' : ''}>
+                        <input type="checkbox" id="prop-locked">
                         Bloquear posición
                     </label>
                 </div>
@@ -483,6 +492,20 @@ class EditorManager {
                     <button id="delete-desk" class="btn-danger">Eliminar</button>
                 </div>
             </div>`;
+
+        // Asignar valores via DOM (seguro contra XSS)
+        const rot = ((desk.rotation || 0) % 360 + 360) % 360;
+        document.getElementById('prop-id').value           = `#${desk.id}`;
+        document.getElementById('prop-agent').value        = desk.agent || '';
+        document.getElementById('prop-campaign').value     = desk.campaign || '';
+        document.getElementById('prop-extension').value    = desk.extension || '';
+        document.getElementById('prop-status').value       = desk.status || 'offline';
+        document.getElementById('prop-x').value            = desk.x;
+        document.getElementById('prop-y').value            = desk.y;
+        document.getElementById('prop-rotation').value     = rot;
+        document.getElementById('prop-rotation-num').value = rot;
+        document.getElementById('rotation-value').textContent = `${rot}°`;
+        document.getElementById('prop-locked').checked     = desk.isLocked || false;
 
         const rotSlider = document.getElementById('prop-rotation');
         const rotNum    = document.getElementById('prop-rotation-num');
@@ -591,10 +614,12 @@ class EditorManager {
         return false;
     }
 
-    resetLayout() {
-        if (!confirm('¿Resetear layout? Se eliminarán todos los puestos y zonas.')) return;
+    async resetLayout() {
+        if (!confirm('¿Resetear layout? Se eliminarán todos los puestos y zonas, tanto localmente como en la nube.')) return;
 
-        // Borrar storage
+        const layoutId = this.storageManager.getActiveLayoutId();
+
+        // Borrar storage local
         this.storageManager.clearLayout();
 
         // Borrar puestos del mapa y del estado interno
@@ -603,10 +628,8 @@ class EditorManager {
         this.selectedDesks.clear();
         this.nextDeskId = 1;
 
-        // Borrar zonas
-        if (this.zoneManager) {
-            this.zoneManager.clearAllZones();
-        }
+        // Borrar zonas localmente
+        if (this.zoneManager) this.zoneManager.clearAllZones();
 
         // Limpiar undo/redo
         this.undoManager?.clear();
@@ -617,7 +640,23 @@ class EditorManager {
 
         // Mostrar canvas vacío
         this.uiManager.showCanvasEmpty();
-        this.uiManager.showNotification('Layout reseteado — workspace vacío', 'info');
+        this.uiManager.showNotification('Reseteando en la nube…', 'info');
+
+        // Borrar en Supabase
+        if (layoutId && window.dbService) {
+            try {
+                await Promise.all([
+                    dbService.deleteAllDesks(layoutId),
+                    dbService.deleteAllZones(layoutId),
+                ]);
+                this.uiManager.showNotification('Layout reseteado — workspace vacío', 'success');
+            } catch (err) {
+                console.warn('[Editor] Error al resetear en Supabase:', err.message);
+                this.uiManager.showNotification('Canvas vacío, pero hubo un error al borrar en la nube: ' + err.message, 'error');
+            }
+        } else {
+            this.uiManager.showNotification('Layout reseteado — workspace vacío', 'info');
+        }
     }
 
     exportLayout() {

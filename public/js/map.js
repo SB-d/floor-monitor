@@ -52,6 +52,17 @@ class FloorMapManager {
             if (e.button !== 0) return;
             // Nunca iniciar pan sobre un desk o zona
             if (e.target.closest?.('.desk-group') || e.target.closest?.('.zone-group')) return;
+
+            // En modo monitoreo: click sobre fondo deselecciona el puesto activo
+            if (!window.editorManager?.isEditorMode) {
+                if (this.selectedDeskId !== null) {
+                    const prev = this.desks.get(this.selectedDeskId);
+                    if (prev) prev.classList.remove('selected');
+                    this.selectedDeskId = null;
+                    window.uiManager?.showEmptyState();
+                }
+            }
+
             // En modo editor: pan solo con Space+drag
             if (window.editorManager?.isEditorMode && !this._spacePan) {
                 return;
@@ -89,7 +100,10 @@ class FloorMapManager {
         // Space+drag = pan en modo editor (igual que Figma)
         this._spacePan = false;
         document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' && window.editorManager?.isEditorMode && !e.repeat) {
+            const tag = document.activeElement?.tagName;
+            const editable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+                          || document.activeElement?.isContentEditable;
+            if (e.code === 'Space' && window.editorManager?.isEditorMode && !e.repeat && !editable) {
                 this._spacePan = true;
                 wrapper.style.cursor = 'grab';
                 e.preventDefault();

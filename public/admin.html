@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administración — Contacta Floor Monitor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/layouts.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <style id="admin-gate-style">body { visibility: hidden !important; }</style>
+</head>
+<body>
+<div class="lm-app">
+
+    <!-- Sidebar compartido -->
+    <div id="app-sidebar"></div>
+
+    <!-- ── Main ────────────────────────────────────────────────── -->
+    <main class="lm-main">
+
+        <!-- Tab: Usuarios -->
+        <div class="lm-admin-tab active" id="tab-users">
+            <div class="lm-toolbar">
+                <div class="lm-toolbar-left">
+                    <h1 class="lm-page-title">Gestión de Usuarios</h1>
+                </div>
+                <div class="lm-toolbar-right">
+                    <div class="lm-search-wrap">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                        </svg>
+                        <input type="text" id="user-search" class="lm-search"
+                               placeholder="Buscar por nombre o email…" oninput="filterUsers()">
+                    </div>
+                    <button class="lm-btn-primary" onclick="loadUsers()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        </svg>
+                        Actualizar
+                    </button>
+                </div>
+            </div>
+
+            <div id="users-alert" class="lm-alert" style="display:none"></div>
+
+            <div class="lm-table-wrap">
+                <table class="lm-table" id="users-table">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Email</th>
+                            <th>Empresa</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th>Último acceso</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-tbody">
+                        <tr><td colspan="7" class="lm-table-empty">Cargando…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab: Auditoría -->
+        <div class="lm-admin-tab" id="tab-audit">
+            <div class="lm-toolbar">
+                <div class="lm-toolbar-left">
+                    <h1 class="lm-page-title">Registro de Auditoría</h1>
+                </div>
+                <div class="lm-toolbar-right">
+                    <button class="lm-btn-primary" onclick="loadAuditLogs()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        </svg>
+                        Actualizar
+                    </button>
+                </div>
+            </div>
+            <div class="lm-table-wrap">
+                <table class="lm-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Entidad</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="audit-tbody">
+                        <tr><td colspan="5" class="lm-table-empty">Cargando…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Modal: cambiar rol -->
+<div class="lm-modal-overlay" id="role-modal" style="display:none" onclick="if(event.target===this)closeRoleModal()">
+    <div class="lm-modal">
+        <div class="lm-modal-header">
+            <h3>Cambiar Rol</h3>
+            <button class="lm-modal-close" onclick="closeRoleModal()">✕</button>
+        </div>
+        <div class="lm-modal-body">
+            <p id="role-modal-user" style="font-size:0.875rem;color:#94a3b8;margin-bottom:1rem"></p>
+            <label style="font-size:0.8rem;color:#64748b;display:block;margin-bottom:0.4rem">Nuevo rol</label>
+            <select id="role-select" class="lm-select">
+                <option value="viewer">Viewer</option>
+                <option value="editor">Editor</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="admin">Admin</option>
+                <option value="super_admin" id="opt-super-admin" style="display:none">Super Admin</option>
+            </select>
+        </div>
+        <div class="lm-modal-footer">
+            <button class="lm-btn-secondary" onclick="closeRoleModal()">Cancelar</button>
+            <button class="lm-btn-primary" onclick="confirmRoleChange()">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<script src="/js/auth/supabaseClient.js"></script>
+<script src="/js/auth/authService.js"></script>
+<script src="/js/sidebar.js"></script>
+<script>
+// ── Auth Gate ────────────────────────────────────────────────
+(async () => {
+    try {
+        await initSupabaseClient();
+        await authService.init();
+
+        if (!authService.isLoggedIn) {
+            window.location.replace('/login');
+            return;
+        }
+        if (!authService.isAdmin()) {
+            window.location.replace('/layouts');
+            return;
+        }
+
+        document.getElementById('admin-gate-style').remove();
+        document.body.style.visibility = '';
+        SidebarComponent.mount('app-sidebar');
+        initAdmin();
+    } catch (err) {
+        console.error('[Admin] Error de autenticación:', err.message);
+        window.location.replace('/login?reason=error');
+    }
+})();
+
+// ── Estado ───────────────────────────────────────────────────
+let _allUsers   = [];
+let _roleTarget = null;
+
+// ── Init ─────────────────────────────────────────────────────
+function initAdmin() {
+    // Mostrar opción super_admin en select solo para super_admin
+    if (authService.isSuperAdmin()) {
+        const opt = document.getElementById('opt-super-admin');
+        if (opt) opt.style.display = '';
+    }
+
+    // Activar tab según URL: /admin/audit → audit, todo lo demás → users
+    const path = window.location.pathname;
+    const tab  = path.endsWith('/audit') ? 'audit' : 'users';
+    activateTab(tab);
+}
+
+function activateTab(tab) {
+    document.querySelectorAll('.lm-admin-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(`tab-${tab}`)?.classList.add('active');
+    if (tab === 'audit') loadAuditLogs();
+    else loadUsers();
+}
+
+// ── Helpers auth ──────────────────────────────────────────────
+async function _getToken() {
+    const sb = await getSupabase();
+    const { data } = await sb.auth.getSession();
+    return data.session?.access_token;
+}
+
+// ── Usuarios ─────────────────────────────────────────────────
+async function loadUsers() {
+    try {
+        const token = await _getToken();
+        const res   = await fetch('/api/admin/users', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        _allUsers = await res.json();
+        renderUsers(_allUsers);
+    } catch (err) {
+        showAlert('users-alert', 'Error cargando usuarios: ' + err.message, 'error');
+    }
+}
+
+function renderUsers(users) {
+    const tbody = document.getElementById('users-tbody');
+    if (!users.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="lm-table-empty">Sin usuarios</td></tr>';
+        return;
+    }
+
+    const myId = authService.user?.id;
+
+    tbody.innerHTML = users.map(u => {
+        const isMe     = u.id === myId;
+        const canEdit  = !isMe && canManageUser(u.role);
+        const isActive = u.is_active !== false;
+        const lastSeen = u.last_seen ? new Date(u.last_seen).toLocaleString('es-CO') : 'Nunca';
+        const company  = u.companies?.name ?? '—';
+
+        return `<tr class="${!isActive ? 'lm-row-inactive' : ''}">
+            <td>
+                <div class="lm-user-cell">
+                    <div class="lm-avatar-sm">${(u.full_name || 'U').split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase()}</div>
+                    <span>${esc(u.full_name || '—')}</span>
+                    ${isMe ? '<span class="lm-badge-you">Tú</span>' : ''}
+                </div>
+            </td>
+            <td class="lm-text-muted">${esc(u.email || '—')}</td>
+            <td class="lm-text-muted">${esc(company)}</td>
+            <td><span class="lm-role-badge lm-role-${u.role}">${u.role.replace('_', ' ')}</span></td>
+            <td><span class="lm-status-dot ${isActive ? 'active' : 'inactive'}">${isActive ? 'Activo' : 'Inactivo'}</span></td>
+            <td class="lm-text-muted">${lastSeen}</td>
+            <td>
+                ${canEdit ? `
+                    <div style="display:flex;gap:0.4rem">
+                        <button class="lm-action-btn" onclick="openRoleModal('${u.id}','${esc(u.full_name||'')}','${u.role}')">Cambiar rol</button>
+                        ${isActive
+                            ? `<button class="lm-action-btn danger" onclick="deactivateUser('${u.id}','${esc(u.full_name||'')}')">Desactivar</button>`
+                            : `<button class="lm-action-btn success" onclick="activateUser('${u.id}')">Activar</button>`
+                        }
+                    </div>
+                ` : '<span style="color:#374151">—</span>'}
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function canManageUser(targetRole) {
+    const h = { super_admin:5, admin:4, supervisor:3, editor:2, viewer:1 };
+    return (h[authService.role] ?? 0) > (h[targetRole] ?? 0);
+}
+
+function filterUsers() {
+    const q = document.getElementById('user-search').value.toLowerCase();
+    renderUsers(_allUsers.filter(u =>
+        (u.full_name || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q) ||
+        (u.companies?.name || '').toLowerCase().includes(q)
+    ));
+}
+
+// ── Cambiar rol ───────────────────────────────────────────────
+function openRoleModal(userId, userName, currentRole) {
+    _roleTarget = userId;
+    document.getElementById('role-modal-user').textContent = `Usuario: ${userName}`;
+    document.getElementById('role-select').value = currentRole;
+    document.getElementById('role-modal').style.display = 'flex';
+}
+
+function closeRoleModal() {
+    _roleTarget = null;
+    document.getElementById('role-modal').style.display = 'none';
+}
+
+async function confirmRoleChange() {
+    if (!_roleTarget) return;
+    const newRole = document.getElementById('role-select').value;
+    try {
+        const token = await _getToken();
+        const res   = await fetch(`/api/admin/users/${_roleTarget}/role`, {
+            method:  'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body:    JSON.stringify({ role: newRole })
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        closeRoleModal();
+        showAlert('users-alert', 'Rol actualizado correctamente', 'success');
+        await loadUsers();
+    } catch (err) {
+        showAlert('users-alert', 'Error: ' + err.message, 'error');
+        closeRoleModal();
+    }
+}
+
+// ── Activar / Desactivar ──────────────────────────────────────
+async function deactivateUser(userId, userName) {
+    if (!confirm(`¿Desactivar la cuenta de "${userName}"? El usuario perderá el acceso inmediatamente.`)) return;
+    try {
+        const token = await _getToken();
+        const res   = await fetch(`/api/admin/users/${userId}/deactivate`, {
+            method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showAlert('users-alert', 'Usuario desactivado', 'success');
+        await loadUsers();
+    } catch (err) {
+        showAlert('users-alert', 'Error: ' + err.message, 'error');
+    }
+}
+
+async function activateUser(userId) {
+    try {
+        const token = await _getToken();
+        const res   = await fetch(`/api/admin/users/${userId}/activate`, {
+            method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showAlert('users-alert', 'Usuario activado', 'success');
+        await loadUsers();
+    } catch (err) {
+        showAlert('users-alert', 'Error: ' + err.message, 'error');
+    }
+}
+
+// ── Auditoría ─────────────────────────────────────────────────
+async function loadAuditLogs() {
+    const tbody = document.getElementById('audit-tbody');
+    tbody.innerHTML = '<tr><td colspan="5" class="lm-table-empty">Cargando…</td></tr>';
+    try {
+        const token = await _getToken();
+        const res   = await fetch('/api/admin/audit', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        const logs = await res.json();
+
+        if (!logs.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="lm-table-empty">Sin registros de auditoría</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = logs.map(l => `<tr>
+            <td class="lm-text-muted">${new Date(l.created_at).toLocaleString('es-CO')}</td>
+            <td class="lm-text-muted">${esc(l.user_id?.slice(0,8) + '…' || '—')}</td>
+            <td><span class="lm-audit-action">${esc(l.action)}</span></td>
+            <td class="lm-text-muted">${esc(l.entity_type || '—')}</td>
+            <td class="lm-text-muted">${esc(l.ip_address || '—')}</td>
+        </tr>`).join('');
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" class="lm-table-empty" style="color:#f87171">Error: ${esc(err.message)}</td></tr>`;
+    }
+}
+
+// ── Utils ─────────────────────────────────────────────────────
+function showAlert(id, msg, type) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.className   = `lm-alert lm-alert-${type}`;
+    el.style.display = '';
+    setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+function esc(str) {
+    return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

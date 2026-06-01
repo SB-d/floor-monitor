@@ -559,7 +559,8 @@ class ZoneManager {
 
         info.setAttribute('x', zone.x + 20);
         info.setAttribute('y', zone.y + 48);
-        info.textContent = `${zone.desks.length}/${zone.capacity} puestos`;
+        const deskCount = Array.isArray(zone.desks) ? zone.desks.length : 0;
+        info.textContent = `${deskCount}/${zone.capacity ?? 0} puestos`;
 
         refs.group.setAttribute('class', `zone-group ${zone.isLocked ? 'locked' : ''} ${this.selectedZoneId === zone.id ? 'selected' : ''}`);
     }
@@ -958,12 +959,12 @@ class ZoneManager {
     deleteZone(zoneId) {
         const zone = this.zones.get(zoneId);
         if (!zone) return;
-        
+
         // Eliminar puestos asociados
         zone.desks.forEach(deskId => {
             this.editorManager?.deleteDesk(deskId);
         });
-        
+
         this.zones.delete(zoneId);
         const refs = this.zoneRefs.get(zoneId);
         if (refs?.group) refs.group.remove();
@@ -971,6 +972,13 @@ class ZoneManager {
 
         if (this.selectedZoneId === zoneId) {
             this.selectedZoneId = null;
+        }
+
+        // Borrar de Supabase si tiene UUID real (no ID local)
+        if (zoneId && window.dbService && !dbService._isLocalId(zoneId)) {
+            dbService.deleteZone(zoneId).catch(err =>
+                console.warn('[ZoneManager] Error borrando zona de DB:', err.message)
+            );
         }
 
         this.editorManager?.saveLayout();
@@ -1122,5 +1130,21 @@ class ZoneManager {
             this.updateZoneAttributes(zone, refs);
             this.syncSelectionAndHandles(zone, refs);
         }
+    }
+
+    // Llamado por storageManager después de insertar en Supabase —
+    // reemplaza el ID local temporal (zone_timestamp) por el UUID real de la DB.
+    updateZoneDbId(localId, dbId) {
+        const zone = this.zones.get(localId);
+        if (!zone || localId === dbId) return;
+        zone.id = dbId;
+        this.zones.delete(localId);
+        this.zones.set(dbId, zone);
+        const refs = this.zoneRefs.get(localId);
+        if (refs) {
+            this.zoneRefs.delete(localId);
+            this.zoneRefs.set(dbId, refs);
+        }
+        if (this.selectedZoneId === localId) this.selectedZoneId = dbId;
     }
 }

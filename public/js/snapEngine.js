@@ -6,7 +6,7 @@ class SnapEngine {
     constructor(svgElement, mapManager) {
         this.svg = svgElement;
         this.mapManager = mapManager;
-        this.enabled = true;
+        this.enabled = false;
         this.guides = [];
         this._guideGroup = null;
         this._initGuideLayer();

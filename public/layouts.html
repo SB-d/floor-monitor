@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Layouts — Contacta Floor Monitor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/layouts.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <style id="gate-style">body { visibility: hidden !important; }</style>
+</head>
+<body>
+    <div class="lm-app">
+        <!-- Sidebar compartido -->
+        <div id="app-sidebar"></div>
+
+        <!-- Main -->
+        <main class="lm-main">
+            <!-- Toolbar -->
+            <div class="lm-toolbar">
+                <div class="lm-toolbar-left">
+                    <h1 class="lm-page-title">Mis Layouts</h1>
+                    <div id="company-badge" class="lm-company-badge"></div>
+                </div>
+                <div class="lm-toolbar-right">
+                    <div class="lm-search-wrap">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                        </svg>
+                        <input type="text" id="search-input" class="lm-search" placeholder="Buscar layouts…" oninput="filterLayouts()">
+                    </div>
+                    <button class="lm-btn-primary" onclick="openCreateModal()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Nuevo Layout
+                    </button>
+                </div>
+            </div>
+
+            <!-- Alert -->
+            <div id="page-alert" class="lm-alert" style="display:none"></div>
+
+            <!-- Stats bar -->
+            <div class="lm-stats-bar">
+                <div class="lm-stat">
+                    <span class="lm-stat-value" id="stat-total">0</span>
+                    <span class="lm-stat-label">Layouts</span>
+                </div>
+                <div class="lm-stat">
+                    <span class="lm-stat-value" id="stat-zones">0</span>
+                    <span class="lm-stat-label">Zonas totales</span>
+                </div>
+                <div class="lm-stat">
+                    <span class="lm-stat-value" id="stat-desks">0</span>
+                    <span class="lm-stat-label">Puestos totales</span>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="lm-table-wrap">
+                <table class="lm-table" id="layouts-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Empresa</th>
+                            <th>Piso / Edificio</th>
+                            <th>Zonas</th>
+                            <th>Puestos</th>
+                            <th>Última modificación</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="layouts-tbody">
+                        <tr><td colspan="9" class="lm-loading">
+                            <div class="lm-spinner"></div> Cargando layouts…
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty state -->
+            <div class="lm-empty" id="empty-state" style="display:none">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="56" height="56">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                <h3>No tienes layouts aún</h3>
+                <p>Crea tu primer layout para empezar a diseñar el mapa de tu contact center</p>
+                <button class="lm-btn-primary" onclick="openCreateModal()">+ Crear primer layout</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Crear layout -->
+    <div class="lm-modal-overlay" id="create-modal" style="display:none" onclick="if(event.target===this)closeCreateModal()">
+        <div class="lm-modal">
+            <div class="lm-modal-header">
+                <h2>Nuevo Layout</h2>
+                <button class="lm-modal-close" onclick="closeCreateModal()">✕</button>
+            </div>
+            <div class="lm-modal-body">
+                <div class="lm-field">
+                    <label>Nombre del layout *</label>
+                    <input type="text" id="create-name" class="lm-input" placeholder="Ej: Piso 2 — Torre Norte" maxlength="80">
+                    <span class="lm-field-error" id="err-name"></span>
+                </div>
+                <div class="lm-field">
+                    <label>Descripción</label>
+                    <textarea id="create-desc" class="lm-input lm-textarea" placeholder="Descripción opcional del layout…" rows="2"></textarea>
+                </div>
+                <div class="lm-field-row">
+                    <div class="lm-field">
+                        <label>Edificio / Sede</label>
+                        <input type="text" id="create-building" class="lm-input" placeholder="Torre Norte">
+                    </div>
+                    <div class="lm-field">
+                        <label>Piso</label>
+                        <input type="text" id="create-floor" class="lm-input" placeholder="Piso 2">
+                    </div>
+                </div>
+                <div class="lm-field">
+                    <label>Color identificador</label>
+                    <div class="lm-color-row">
+                        <input type="color" id="create-color" class="lm-color-input" value="#3b82f6">
+                        <span class="lm-color-label">Color del layout en el listado</span>
+                    </div>
+                </div>
+            </div>
+            <div class="lm-modal-footer">
+                <button class="lm-btn-secondary" onclick="closeCreateModal()">Cancelar</button>
+                <button class="lm-btn-primary" id="btn-create" onclick="submitCreateLayout()">
+                    <div class="lm-btn-spinner" id="create-spinner" style="display:none"></div>
+                    Crear Layout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Editar layout -->
+    <div class="lm-modal-overlay" id="edit-modal" style="display:none" onclick="if(event.target===this)closeEditModal()">
+        <div class="lm-modal">
+            <div class="lm-modal-header">
+                <h2>Editar Layout</h2>
+                <button class="lm-modal-close" onclick="closeEditModal()">✕</button>
+            </div>
+            <div class="lm-modal-body">
+                <div class="lm-field">
+                    <label>Nombre del layout *</label>
+                    <input type="text" id="edit-name" class="lm-input" placeholder="Ej: Piso 2 — Torre Norte" maxlength="80">
+                    <span class="lm-field-error" id="err-edit-name"></span>
+                </div>
+                <div class="lm-field">
+                    <label>Descripción</label>
+                    <textarea id="edit-desc" class="lm-input lm-textarea" placeholder="Descripción opcional del layout…" rows="2"></textarea>
+                </div>
+                <div class="lm-field-row">
+                    <div class="lm-field">
+                        <label>Edificio / Sede</label>
+                        <input type="text" id="edit-building" class="lm-input" placeholder="Torre Norte">
+                    </div>
+                    <div class="lm-field">
+                        <label>Piso</label>
+                        <input type="text" id="edit-floor" class="lm-input" placeholder="Piso 2">
+                    </div>
+                </div>
+                <div class="lm-field">
+                    <label>Color identificador</label>
+                    <div class="lm-color-row">
+                        <input type="color" id="edit-color" class="lm-color-input" value="#3b82f6">
+                        <span class="lm-color-label">Color del layout en el listado</span>
+                    </div>
+                </div>
+            </div>
+            <div class="lm-modal-footer">
+                <button class="lm-btn-secondary" onclick="closeEditModal()">Cancelar</button>
+                <button class="lm-btn-primary" id="btn-edit-save" onclick="submitEditLayout()">
+                    <div class="lm-btn-spinner" id="edit-spinner" style="display:none"></div>
+                    Guardar cambios
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Confirmar eliminar -->
+    <div class="lm-modal-overlay" id="delete-modal" style="display:none">
+        <div class="lm-modal lm-modal-sm">
+            <div class="lm-modal-header">
+                <h2>Eliminar Layout</h2>
+                <button class="lm-modal-close" onclick="closeDeleteModal()">✕</button>
+            </div>
+            <div class="lm-modal-body">
+                <p>¿Estás seguro de que deseas eliminar <strong id="delete-layout-name"></strong>?</p>
+                <p class="lm-warning-text">Esta acción no se puede deshacer. Se eliminarán todas las zonas y puestos asociados.</p>
+            </div>
+            <div class="lm-modal-footer">
+                <button class="lm-btn-secondary" onclick="closeDeleteModal()">Cancelar</button>
+                <button class="lm-btn-danger" id="btn-delete-confirm" onclick="confirmDelete()">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth/supabaseClient.js"></script>
+    <script src="/js/auth/authService.js"></script>
+    <script src="/js/services/dbService.js"></script>
+    <script src="/js/sidebar.js"></script>
+    <script>
+    // ── Auth Gate ────────────────────────────────────────────────
+    (async () => {
+        try {
+            await initSupabaseClient();
+            await authService.init();
+            if (!authService.isLoggedIn) {
+                window.location.replace('/login');
+                return;
+            }
+            document.getElementById('gate-style').remove();
+            document.body.style.visibility = '';
+            SidebarComponent.mount('app-sidebar');
+            await initPage();
+        } catch (err) {
+            console.error('[LayoutsPage] Auth error:', err);
+            window.location.replace('/login?reason=error');
+        }
+    })();
+
+    // ── Estado ───────────────────────────────────────────────────
+    let _allLayouts  = [];
+    let _deleteTarget = null;
+
+    // ── Init ─────────────────────────────────────────────────────
+    async function initPage() {
+        // Badge empresa en toolbar
+        const company = authService.company;
+        const badge   = document.getElementById('company-badge');
+        if (badge) {
+            if (company) {
+                badge.textContent = company.name;
+                badge.style.display = '';
+            } else if (authService.isSuperAdmin()) {
+                badge.textContent = 'Super Admin — acceso global';
+                badge.style.display = '';
+                badge.style.background = 'rgba(251,191,36,0.15)';
+                badge.style.color = '#fbbf24';
+                badge.style.border = '1px solid rgba(251,191,36,0.3)';
+            }
+        }
+
+        await loadLayouts();
+    }
+
+    // ── Cargar layouts ────────────────────────────────────────────
+    async function loadLayouts() {
+        try {
+            _allLayouts = await dbService.getLayouts();
+            renderLayouts(_allLayouts);
+            updateStats(_allLayouts);
+        } catch (err) {
+            showAlert('Error cargando layouts: ' + err.message, 'error');
+            renderLayouts([]);
+        }
+    }
+
+    function updateStats(layouts) {
+        document.getElementById('stat-total').textContent  = layouts.length;
+        const zones = layouts.reduce((s, l) => s + (l.zones?.[0]?.count ?? 0), 0);
+        const desks = layouts.reduce((s, l) => s + (l.desks?.[0]?.count ?? 0), 0);
+        document.getElementById('stat-zones').textContent = zones;
+        document.getElementById('stat-desks').textContent = desks;
+    }
+
+    function renderLayouts(layouts) {
+        const tbody  = document.getElementById('layouts-tbody');
+        const empty  = document.getElementById('empty-state');
+        const table  = document.getElementById('layouts-table');
+
+        if (!layouts.length) {
+            tbody.innerHTML = '';
+            table.style.display = 'none';
+            empty.style.display = '';
+            return;
+        }
+
+        table.style.display = '';
+        empty.style.display = 'none';
+
+        tbody.innerHTML = layouts.map(l => {
+            const zones    = l.zones?.[0]?.count ?? 0;
+            const desks    = l.desks?.[0]?.count ?? 0;
+            const updated  = new Date(l.updated_at).toLocaleString('es-CO', { dateStyle:'short', timeStyle:'short' });
+            const created  = new Date(l.created_at).toLocaleDateString('es-CO');
+            const color    = l.settings?.color ?? '#3b82f6';
+            const building = l.settings?.building ?? '—';
+            const floor    = l.settings?.floor    ?? '—';
+            const company  = l.settings?.company_name ?? '—';
+            const canEdit  = authService.isEditor();
+            const canAdmin = authService.isSuperAdmin() || authService.isAdmin();
+
+            return `<tr>
+                <td>
+                    <div class="lm-layout-name">
+                        <span class="lm-color-dot" style="background:${escHtml(color)}"></span>
+                        <div>
+                            <div class="lm-name-text">${escHtml(l.name)}</div>
+                            <div class="lm-name-date">Creado ${created}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="lm-desc">${escHtml(l.description || '—')}</td>
+                <td>${escHtml(company)}</td>
+                <td>
+                    <div class="lm-floor-cell">
+                        <span>${escHtml(floor)}</span>
+                        <span class="lm-building">${escHtml(building)}</span>
+                    </div>
+                </td>
+                <td><span class="lm-count-badge">${zones}</span></td>
+                <td><span class="lm-count-badge">${desks}</span></td>
+                <td class="lm-date">${updated}</td>
+                <td><span class="lm-status-badge active">Activo</span></td>
+                <td>
+                    <div class="lm-actions">
+                        <button class="lm-action-btn primary" onclick="openLayout('${l.id}')" title="Abrir editor">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                            Abrir
+                        </button>
+                        ${canEdit ? `
+                        <button class="lm-action-btn" onclick="openEditModal('${l.id}')" title="Editar metadatos">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
+                        <button class="lm-action-btn" onclick="duplicateLayout('${l.id}','${escHtml(l.name)}')" title="Duplicar">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                        </button>` : ''}
+                        ${canAdmin ? `
+                        <button class="lm-action-btn danger" onclick="openDeleteModal('${l.id}','${escHtml(l.name)}')" title="Eliminar">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                <path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                            </svg>
+                        </button>` : ''}
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function filterLayouts() {
+        const q = document.getElementById('search-input').value.toLowerCase();
+        renderLayouts(_allLayouts.filter(l =>
+            l.name.toLowerCase().includes(q) ||
+            (l.description || '').toLowerCase().includes(q)
+        ));
+    }
+
+    // ── Abrir layout en editor ────────────────────────────────────
+    function openLayout(layoutId) {
+        // Limpiar cache del layout anterior para forzar carga fresca desde Supabase
+        localStorage.removeItem('contacta_floor_layout');
+        localStorage.removeItem('contacta_floor_zones');
+        // Guardar el layout seleccionado y abrir el editor
+        localStorage.setItem('contacta_active_layout_id', layoutId);
+        window.location.href = '/editor';
+    }
+
+    // ── Crear layout ──────────────────────────────────────────────
+    function openCreateModal() {
+        document.getElementById('create-modal').style.display = 'flex';
+        document.getElementById('create-name').focus();
+    }
+
+    function closeCreateModal() {
+        document.getElementById('create-modal').style.display = 'none';
+        document.getElementById('create-name').value  = '';
+        document.getElementById('create-desc').value  = '';
+        document.getElementById('create-building').value = '';
+        document.getElementById('create-floor').value    = '';
+        document.getElementById('create-color').value    = '#3b82f6';
+        document.getElementById('err-name').textContent  = '';
+    }
+
+    async function submitCreateLayout() {
+        const name     = document.getElementById('create-name').value.trim();
+        const desc     = document.getElementById('create-desc').value.trim();
+        const building = document.getElementById('create-building').value.trim();
+        const floor    = document.getElementById('create-floor').value.trim();
+        const color    = document.getElementById('create-color').value;
+
+        if (!name) {
+            document.getElementById('err-name').textContent = 'El nombre es requerido';
+            document.getElementById('create-name').focus();
+            return;
+        }
+
+        const btn     = document.getElementById('btn-create');
+        const spinner = document.getElementById('create-spinner');
+        btn.disabled  = true;
+        spinner.style.display = '';
+
+        try {
+            const layout = await dbService.createLayout({
+                name,
+                description: desc || null,
+                is_active:   true,
+                settings: { color, building: building || null, floor: floor || null,
+                            gridSize: 40, snapEnabled: false, guidesEnabled: true }
+            });
+            closeCreateModal();
+            showAlert(`Layout "${layout.name}" creado correctamente`, 'success');
+            // Abrir directamente en el editor
+            openLayout(layout.id);
+        } catch (err) {
+            showAlert('Error al crear: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            spinner.style.display = 'none';
+        }
+    }
+
+    // Enter en el campo nombre
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && document.getElementById('create-modal').style.display !== 'none') {
+            submitCreateLayout();
+        }
+        if (e.key === 'Escape') {
+            closeCreateModal();
+            closeEditModal();
+            closeDeleteModal();
+        }
+        if (e.key === 'Enter' && document.getElementById('edit-modal').style.display !== 'none') {
+            submitEditLayout();
+        }
+    });
+
+    // ── Editar layout ─────────────────────────────────────────────
+    let _editTarget = null;
+
+    function openEditModal(layoutId) {
+        const layout = _allLayouts.find(l => l.id === layoutId);
+        if (!layout) return;
+        _editTarget = layoutId;
+        document.getElementById('edit-name').value     = layout.name ?? '';
+        document.getElementById('edit-desc').value     = layout.description ?? '';
+        document.getElementById('edit-building').value = layout.settings?.building ?? '';
+        document.getElementById('edit-floor').value    = layout.settings?.floor ?? '';
+        document.getElementById('edit-color').value    = layout.settings?.color ?? '#3b82f6';
+        document.getElementById('err-edit-name').textContent = '';
+        document.getElementById('edit-modal').style.display = 'flex';
+        document.getElementById('edit-name').focus();
+    }
+
+    function closeEditModal() {
+        _editTarget = null;
+        document.getElementById('edit-modal').style.display = 'none';
+    }
+
+    async function submitEditLayout() {
+        const name = document.getElementById('edit-name').value.trim();
+        if (!name) {
+            document.getElementById('err-edit-name').textContent = 'El nombre es requerido';
+            document.getElementById('edit-name').focus();
+            return;
+        }
+
+        const btn     = document.getElementById('btn-edit-save');
+        const spinner = document.getElementById('edit-spinner');
+        btn.disabled  = true;
+        spinner.style.display = '';
+
+        const existing = _allLayouts.find(l => l.id === _editTarget);
+        const newSettings = {
+            ...(existing?.settings ?? {}),
+            color:    document.getElementById('edit-color').value,
+            building: document.getElementById('edit-building').value.trim() || null,
+            floor:    document.getElementById('edit-floor').value.trim() || null,
+        };
+
+        try {
+            await dbService.updateLayout(_editTarget, {
+                name,
+                description: document.getElementById('edit-desc').value.trim() || null,
+                settings:    newSettings,
+            });
+            closeEditModal();
+            showAlert(`Layout "${name}" actualizado`, 'success');
+            await loadLayouts();
+        } catch (err) {
+            showAlert('Error al guardar: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            spinner.style.display = 'none';
+        }
+    }
+
+    // ── Duplicar layout ───────────────────────────────────────────
+    async function duplicateLayout(layoutId, name) {
+        try {
+            const original = await dbService.getLayout(layoutId);
+            const copy = await dbService.createLayout({
+                name:        `${name} (copia)`,
+                description: original.description,
+                is_active:   true,
+                settings:    original.settings
+            });
+
+            const sb = await getSupabase();
+
+            // Copiar desks — estado reseteado a offline (nueva copia limpia)
+            if (original.desks?.length) {
+                const deskPayloads = original.desks.map(d => ({
+                    layout_id:   copy.id,
+                    company_id:  authService.companyId,
+                    created_by:  authService.user?.id,
+                    desk_number: d.desk_number,
+                    x: d.x, y: d.y,
+                    rotation:    d.rotation ?? 0,
+                    status:      'offline',
+                    agent:       null,
+                    extension:   null,
+                    campaign:    null,
+                    is_locked:   d.is_locked ?? false,
+                    custom_color: d.custom_color ?? null,
+                    metadata:    d.metadata ?? {}
+                }));
+                const { error: dErr } = await sb.from('desks').insert(deskPayloads);
+                if (dErr) throw dErr;
+            }
+
+            // Copiar zonas
+            if (original.zones?.length) {
+                const zonePayloads = original.zones.map(z => ({
+                    layout_id:  copy.id,
+                    company_id: authService.companyId,
+                    created_by: authService.user?.id,
+                    name:       z.name,
+                    color:      z.color,
+                    x: z.x, y: z.y,
+                    width:      z.width,
+                    height:     z.height,
+                    capacity:   z.capacity ?? 10,
+                    is_locked:  z.is_locked ?? false
+                }));
+                const { error: zErr } = await sb.from('zones').insert(zonePayloads);
+                if (zErr) throw zErr;
+            }
+
+            showAlert(`Layout duplicado: "${copy.name}" (${original.desks?.length ?? 0} puestos, ${original.zones?.length ?? 0} zonas)`, 'success');
+            await loadLayouts();
+        } catch (err) {
+            showAlert('Error al duplicar: ' + err.message, 'error');
+        }
+    }
+
+    // ── Eliminar layout ───────────────────────────────────────────
+    function openDeleteModal(layoutId, name) {
+        _deleteTarget = layoutId;
+        document.getElementById('delete-layout-name').textContent = name;
+        document.getElementById('delete-modal').style.display = 'flex';
+    }
+
+    function closeDeleteModal() {
+        _deleteTarget = null;
+        document.getElementById('delete-modal').style.display = 'none';
+    }
+
+    async function confirmDelete() {
+        if (!_deleteTarget) return;
+        const btn = document.getElementById('btn-delete-confirm');
+        btn.disabled = true;
+        btn.textContent = 'Eliminando…';
+        try {
+            // Borrar hijos primero (hard-delete) para evitar datos huérfanos en DB
+            await Promise.all([
+                dbService.deleteAllDesks(_deleteTarget),
+                dbService.deleteAllZones(_deleteTarget)
+            ]);
+            // Soft-delete del layout
+            await dbService.deleteLayout(_deleteTarget);
+            closeDeleteModal();
+            showAlert('Layout eliminado', 'success');
+            // Limpiar localStorage si era el activo
+            if (localStorage.getItem('contacta_active_layout_id') === _deleteTarget) {
+                localStorage.removeItem('contacta_active_layout_id');
+            }
+            await loadLayouts();
+        } catch (err) {
+            showAlert('Error al eliminar: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Eliminar';
+        }
+    }
+
+    // ── Logout ────────────────────────────────────────────────────
+    async function doLogout() {
+        await authService.logout();
+        window.location.replace('/login');
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────
+    function showAlert(msg, type) {
+        const el = document.getElementById('page-alert');
+        el.textContent   = msg;
+        el.className     = `lm-alert lm-alert-${type}`;
+        el.style.display = '';
+        clearTimeout(el._timer);
+        el._timer = setTimeout(() => { el.style.display = 'none'; }, 5000);
+    }
+
+    function escHtml(s) {
+        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    </script>
+</body>
+</html>
